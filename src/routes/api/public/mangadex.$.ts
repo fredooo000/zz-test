@@ -1,0 +1,40 @@
+// Public proxy to MangaDex (the open backend used by most Keiyoushi/Tachiyomi
+// manga + manhwa extensions). Keeps API tokens out of the browser and CORS-safe.
+import { createFileRoute } from "@tanstack/react-router";
+
+const BASE = process.env.MANGADEX_BASE_URL || "https://api.mangadex.org";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Cache-Control": "public, max-age=120, s-maxage=300",
+};
+
+export const Route = createFileRoute("/api/public/mangadex/$")({
+  server: {
+    handlers: {
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
+      GET: async ({ request, params }) => {
+        const splat = (params as { _splat?: string })._splat ?? "";
+        const url = new URL(request.url);
+        const upstream = `${BASE}/${splat}${url.search}`;
+        try {
+          const res = await fetch(upstream, {
+            headers: { Accept: "application/json", "User-Agent": "Kyrox/1.0" },
+          });
+          const body = await res.text();
+          return new Response(body, {
+            status: res.status,
+            headers: { "Content-Type": "application/json", ...CORS },
+          });
+        } catch (e) {
+          return new Response(
+            JSON.stringify({ error: "upstream_unreachable", message: String(e) }),
+            { status: 502, headers: { "Content-Type": "application/json", ...CORS } },
+          );
+        }
+      },
+    },
+  },
+});
