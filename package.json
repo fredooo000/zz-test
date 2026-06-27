@@ -4,14 +4,14 @@
   "sideEffects": ["**/*.css"],
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
-    "lint": "eslint .",
-    "format": "prettier --write ."
-  },
+  "dev": "vite dev",
+  "build": "vite build; test -f .vercel/output/functions/__server.func/index.mjs && exit 0 || exit 1",
+  "build:dev": "vite build --mode development",
+  "preview": "vite preview",
+  "start": "node .output/server/index.mjs",
+  "lint": "eslint .",
+  "format": "prettier --write ."
+},
   "dependencies": {
     "@consumet/extensions": "^1.8.8",
     "@hookform/resolvers": "^5.2.2",
@@ -86,7 +86,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "nitro": "^3.0.260603-beta",
+    "nitro": "3.0.260429-beta",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
