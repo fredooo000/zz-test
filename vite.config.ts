@@ -16,6 +16,14 @@ export default defineConfig({
     // (Vite couldn't load useServerFn.js within its 60s SSR timeout on the slow
     // disk). Server functions and API routes (e.g. /api/proxy) still work.
     spa: { enabled: true },
+    // Disable prerendering. TanStack Start's prerender step spins up a temp
+    // preview server that hardcodes the server bundle path to
+    // `dist/server/server.js`, but our nitro.output config below remaps the
+    // server bundle to `.vercel/output/functions/__server.func/` for the
+    // Vercel Build Output API — so the prerenderer can't find it and the
+    // build fails with ERR_MODULE_NOT_FOUND on `/`. We don't need prerendering
+    // anyway since spa.enabled already renders everything client-side.
+    prerender: { enabled: false },
   },
   // ─── Vercel deploy target ───────────────────────────────────────────────────
   // The Lovable config defaults nitro to the `cloudflare-module` preset and
@@ -31,8 +39,10 @@ export default defineConfig({
       serverDir: "{{ output.dir }}/functions/__server.func",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
-    // Kept as a backup in case Nitro's own bundling pass also touches this —
-    // harmless if unused.
+    // got-scraping (pulled in transitively by @consumet/extensions) ships
+    // strict ESM `exports` conditions that Nitro's bundler can't resolve a
+    // valid entry point for. Kept as a backup external in case Nitro's own
+    // bundling pass touches this; harmless if unused.
     externals: {
       external: ["got-scraping", "@consumet/extensions"],
     },
@@ -46,17 +56,14 @@ export default defineConfig({
       // is ESM-only and can't be resolved by esbuild's pre-bundler.
       exclude: ["@consumet/extensions"],
     },
-    // got-scraping (pulled in transitively by @consumet/extensions) ships
-    // strict ESM `exports` conditions that Rollup's commonjs resolver can't
-    // find a valid entry for ("No known conditions for '.' specifier") when
-    // Vite bundles the "nitro" server environment. `ssr.external` tells Vite
-    // to leave it as a real require()/import at runtime instead of inlining
-    // it — applies to all SSR-type environments (including the nitro one).
+    // got-scraping ships strict ESM `exports` conditions that Rollup's
+    // commonjs resolver can't find a valid entry for when Vite bundles the
+    // "nitro" server environment. ssr.external leaves it as a real
+    // require()/import at runtime instead of inlining it.
     ssr: {
       external: ["got-scraping", "@consumet/extensions"],
     },
-    // Belt-and-suspenders: also exclude at the Rollup level directly, in case
-    // the nitro environment's build config doesn't inherit top-level ssr.external.
+    // Belt-and-suspenders: also exclude at the Rollup level directly.
     build: {
       rollupOptions: {
         external: ["got-scraping", "@consumet/extensions"],
