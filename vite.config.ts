@@ -15,15 +15,18 @@ export default defineConfig({
     // of the "transport invoke timed out / h3 swallowed SSR error" 500 crashes
     // (Vite couldn't load useServerFn.js within its 60s SSR timeout on the slow
     // disk). Server functions and API routes (e.g. /api/proxy) still work.
-    spa: { enabled: true },
-    // Disable prerendering. TanStack Start's prerender step spins up a temp
-    // preview server that hardcodes the server bundle path to
-    // `dist/server/server.js`, but our nitro.output config below remaps the
-    // server bundle to `.vercel/output/functions/__server.func/` for the
-    // Vercel Build Output API — so the prerenderer can't find it and the
-    // build fails with ERR_MODULE_NOT_FOUND on `/`. We don't need prerendering
-    // anyway since spa.enabled already renders everything client-side.
-    prerender: { enabled: false },
+    spa: {
+      enabled: true,
+      // SPA mode prerenders one shell page via a separate nested
+      // `spa.prerender` config (not the top-level `prerender` key). That
+      // prerender spins up a temp preview server hardcoded to look for the
+      // server bundle at `dist/server/server.js`, but our nitro.output config
+      // below remaps it to `.vercel/output/functions/__server.func/` for the
+      // Vercel Build Output API — so the prerenderer can't find it and the
+      // build fails with ERR_MODULE_NOT_FOUND on `/`. Disable it; the client
+      // shell renders fine without a prerendered HTML file.
+      prerender: { enabled: false },
+    },
   },
   // ─── Vercel deploy target ───────────────────────────────────────────────────
   // The Lovable config defaults nitro to the `cloudflare-module` preset and
