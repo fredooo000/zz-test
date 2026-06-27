@@ -31,13 +31,8 @@ export default defineConfig({
       serverDir: "{{ output.dir }}/functions/__server.func",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
-    // got-scraping (pulled in transitively by @consumet/extensions) ships
-    // strict ESM `exports` conditions that Nitro's Rollup-based server
-    // bundler can't resolve a valid entry point for ("No known conditions
-    // for '.' specifier"). Mark both as external so Nitro leaves them as
-    // real require()/import calls instead of trying to inline them — Node
-    // resolves them natively at runtime from node_modules in the deployed
-    // function instead.
+    // Kept as a backup in case Nitro's own bundling pass also touches this —
+    // harmless if unused.
     externals: {
       external: ["got-scraping", "@consumet/extensions"],
     },
@@ -50,6 +45,22 @@ export default defineConfig({
       // @consumet/extensions is only used server-side; its got-scraping dependency
       // is ESM-only and can't be resolved by esbuild's pre-bundler.
       exclude: ["@consumet/extensions"],
+    },
+    // got-scraping (pulled in transitively by @consumet/extensions) ships
+    // strict ESM `exports` conditions that Rollup's commonjs resolver can't
+    // find a valid entry for ("No known conditions for '.' specifier") when
+    // Vite bundles the "nitro" server environment. `ssr.external` tells Vite
+    // to leave it as a real require()/import at runtime instead of inlining
+    // it — applies to all SSR-type environments (including the nitro one).
+    ssr: {
+      external: ["got-scraping", "@consumet/extensions"],
+    },
+    // Belt-and-suspenders: also exclude at the Rollup level directly, in case
+    // the nitro environment's build config doesn't inherit top-level ssr.external.
+    build: {
+      rollupOptions: {
+        external: ["got-scraping", "@consumet/extensions"],
+      },
     },
   },
 });
